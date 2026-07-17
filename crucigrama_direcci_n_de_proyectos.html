@@ -1,0 +1,803 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Crucigrama Interactivo - Dirección de Proyectos Informáticos</title>
+    <!-- Tailwind CSS para diseño rápido y elegante -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Fuente Inter para legibilidad premium -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Animación para pulso de advertencia en temporizador */
+        @keyframes pulse-red {
+            0%, 100% { background-color: rgba(220, 38, 38, 0.4); border-color: rgba(239, 68, 68, 0.8); }
+            50% { background-color: rgba(220, 38, 38, 0.8); border-color: rgba(239, 68, 68, 1); }
+        }
+        .timer-alert {
+            animation: pulse-red 1.5s infinite ease-in-out;
+        }
+        /* Deshabilitar selección indeseada para mejor respuesta táctil */
+        .no-select {
+            -webkit-touch-callout: none;
+            -webkit-user-select: none;
+            user-select: none;
+        }
+        /* Ocultar flechas estándar de inputs de un carácter */
+        input::-webkit-outer-spin-button,
+        input::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        input[type=number] {
+            -moz-appearance: textfield;
+        }
+    </style>
+</head>
+<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col no-select">
+
+    <!-- Header Principal -->
+    <header class="bg-slate-900 border-b border-slate-800 py-4 px-6 shadow-2xl relative z-10">
+        <div class="max-w-7xl mx-auto flex flex-col md:flex-row justify-between items-center gap-4">
+            <div class="flex items-center gap-3">
+                <div class="bg-indigo-600 p-2.5 rounded-2xl text-white shadow-lg shadow-indigo-500/30">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+                    </svg>
+                </div>
+                <div>
+                    <h1 class="text-xl md:text-2xl font-black bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">GESTIÓN DE PROYECTOS TI</h1>
+                    <p class="text-xs text-slate-400 font-semibold uppercase tracking-widest">Crucigrama de Nivel Intermedio • Gamificación Educativa</p>
+                </div>
+            </div>
+
+            <!-- Panel de Estado Superior -->
+            <div class="flex items-center gap-4 w-full md:w-auto justify-end">
+                <div class="bg-slate-800/80 border border-slate-700 rounded-xl px-4 py-2 flex items-center gap-2">
+                    <span class="text-xs text-slate-400 font-bold uppercase">Progreso:</span>
+                    <span id="score-badge" class="text-lg font-extrabold text-indigo-400">0 / 10</span>
+                </div>
+                <!-- Temporizador -->
+                <div id="timer-box" class="bg-red-950/40 border border-red-900/60 rounded-xl px-5 py-2 flex items-center gap-3 transition-all duration-300">
+                    <span class="relative flex h-3 w-3">
+                        <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+                        <span class="relative inline-flex rounded-full h-3 w-3 bg-red-500"></span>
+                    </span>
+                    <div class="text-left">
+                        <p class="text-[10px] text-slate-400 uppercase tracking-widest leading-none font-bold">Tiempo límite</p>
+                        <span id="timer-display" class="text-xl font-mono font-bold text-red-400 leading-none">10:00</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </header>
+
+    <!-- Contenido Principal -->
+    <main class="flex-grow max-w-7xl w-full mx-auto p-4 md:p-6 flex flex-col lg:flex-row gap-6">
+
+        <!-- Columna Izquierda: El Tablero del Crucigrama -->
+        <section class="flex-grow bg-slate-900/40 border border-slate-800/80 rounded-2xl p-4 md:p-6 shadow-2xl flex flex-col items-center justify-center">
+            
+            <!-- Barra de Herramientas del Crucigrama -->
+            <div class="w-full max-w-2xl mb-4 flex justify-between items-center gap-2">
+                <div class="text-xs md:text-sm text-slate-400 font-medium">
+                    📌 Haz clic en una casilla para comenzar a escribir.
+                </div>
+                <div class="flex gap-2">
+                    <button id="btn-sound" class="p-2 bg-slate-800 hover:bg-slate-700 rounded-xl text-slate-300 transition-all shadow" title="Alternar Sonido">
+                        <span id="sound-icon" class="text-sm">🔊</span>
+                    </button>
+                    <button id="btn-restart" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-700 text-xs font-bold text-slate-200 rounded-xl transition-all shadow flex items-center gap-1.5">
+                        🔄 Reiniciar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Contenedor del Crucigrama Adaptativo -->
+            <div class="w-full overflow-auto flex justify-center p-2">
+                <div class="bg-slate-950 p-4 rounded-3xl border border-slate-800/60 shadow-inner relative max-w-full overflow-x-auto">
+                    <!-- Cuadrícula interactiva -->
+                    <div id="crossword-grid" class="grid gap-1 select-none mx-auto" style="grid-template-columns: repeat(12, minmax(32px, 42px));">
+                        <!-- Las celdas se inyectarán de manera dinámica con JavaScript -->
+                    </div>
+                </div>
+            </div>
+
+            <!-- Mini-Visor de Pista Activa en Móviles -->
+            <div id="mobile-clue-bar" class="w-full max-w-2xl mt-4 bg-indigo-950/40 border border-indigo-500/30 rounded-xl p-3 text-center hidden">
+                <span class="text-[10px] text-indigo-400 font-bold uppercase tracking-wider block" id="mobile-clue-label">Pista enfocada</span>
+                <p class="text-xs text-slate-200 font-medium mt-0.5" id="mobile-clue-text">Selecciona una palabra para ver su pista.</p>
+            </div>
+        </section>
+
+        <!-- Columna Derecha: Listado de Conceptos & Instrucciones -->
+        <aside class="w-full lg:w-[420px] flex flex-col gap-6 shrink-0">
+            
+            <!-- Contextualización Pedagógica -->
+            <div class="bg-gradient-to-br from-indigo-950/40 to-slate-900 border border-indigo-900/30 rounded-2xl p-5 shadow-lg">
+                <h3 class="text-xs font-bold text-indigo-400 uppercase tracking-widest mb-2 flex items-center gap-1.5">
+                    <span>⚡</span> INSTRUCCIONES DE JUEGO
+                </h3>
+                <p class="text-xs text-slate-300 leading-relaxed">
+                    Escribe directamente en las celdas blancas del crucigrama. Puedes moverte con las flechas del teclado. Al completar correctamente un concepto, este se bloqueará en el tablero y se listará en verde.
+                </p>
+            </div>
+
+            <!-- Listado de pistas con retroalimentación visual -->
+            <div class="bg-slate-900/40 border border-slate-800/80 rounded-2xl p-5 shadow-lg flex-grow flex flex-col">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="font-bold text-slate-200 tracking-wide flex items-center gap-2 text-sm">
+                        <span>🔍</span> CONCEPTOS CLAVE
+                    </h3>
+                    <span class="text-xs bg-slate-850 px-2.5 py-1 rounded-full font-bold text-slate-400" id="found-counter">0 / 10</span>
+                </div>
+
+                <!-- Lista de Palabras -->
+                <div class="space-y-3 flex-grow overflow-y-auto max-h-[420px] lg:max-h-[600px] pr-1" id="clues-list">
+                    <!-- Se inyectará con JS -->
+                </div>
+
+                <!-- Leyenda de colores -->
+                <div class="mt-4 pt-4 border-t border-slate-800 text-[10px] text-slate-400 flex justify-between gap-2">
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-2.5 h-2.5 rounded bg-rose-500/20 border border-rose-500/40"></span>
+                        <span>Pendiente (Rojo)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-2.5 h-2.5 rounded bg-emerald-500/20 border border-emerald-500/40"></span>
+                        <span>Completado (Verde)</span>
+                    </div>
+                    <div class="flex items-center gap-1.5">
+                        <span class="inline-block w-2.5 h-2.5 rounded bg-indigo-500/20 border border-indigo-500/40"></span>
+                        <span>Seleccionado</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+    </main>
+
+    <!-- Footer Educativo -->
+    <footer class="bg-slate-900/40 border-t border-slate-900 py-4 text-center text-xs text-slate-500 mt-auto">
+        <p>© Gamificación Profesional - Dirección de Proyectos de Software y Sistemas</p>
+    </footer>
+
+    <!-- Modal de Confirmación de Reinicio -->
+    <div id="confirm-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-slate-850 p-6 rounded-2xl max-w-sm w-full shadow-2xl text-center">
+            <div class="mx-auto w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center text-2xl mb-3">
+                ⚠️
+            </div>
+            <h3 class="text-lg font-bold text-white mb-1">¿Deseas reiniciar?</h3>
+            <p class="text-slate-400 text-xs mb-5">
+                Perderás todo tu progreso actual y el temporizador volverá a los 10 minutos iniciales.
+            </p>
+            <div class="flex gap-3">
+                <button id="confirm-btn-cancel" class="flex-1 py-2 bg-slate-800 hover:bg-slate-705 text-slate-200 text-sm font-semibold rounded-lg transition-all">
+                    Cancelar
+                </button>
+                <button id="confirm-btn-yes" class="flex-1 py-2 bg-amber-600 hover:bg-amber-500 text-white text-sm font-bold rounded-lg transition-all">
+                    Reiniciar
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal de Fin de Juego (Ganador / Perdedor) -->
+    <div id="game-modal" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md hidden">
+        <div class="bg-slate-900 border border-slate-850 p-6 md:p-8 rounded-3xl max-w-md w-full shadow-2xl text-center">
+            <div id="modal-icon-container" class="mx-auto w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg">
+                🏆
+            </div>
+            <h2 id="modal-title" class="text-2xl font-black mb-2 text-white">¡Misión Cumplida!</h2>
+            <p id="modal-description" class="text-slate-300 text-sm mb-6 leading-relaxed">
+                Has completado exitosamente todas las definiciones del crucigrama de Dirección de Proyectos. Demostraste un dominio excelente de las metodologías de TI.
+            </p>
+            
+            <div class="bg-slate-950 rounded-2xl p-4 mb-6 border border-slate-850">
+                <h4 class="text-xs text-slate-500 font-bold uppercase mb-1">Tu Registro de Desempeño</h4>
+                <div class="grid grid-cols-2 gap-2 text-center">
+                    <div class="p-2">
+                        <p class="text-slate-400 text-xs">Tiempo empleado</p>
+                        <p id="modal-stat-time" class="text-xl font-bold text-indigo-400">00:00</p>
+                    </div>
+                    <div class="p-2">
+                        <p class="text-slate-400 text-xs">Conceptos Clave</p>
+                        <p id="modal-stat-words" class="text-xl font-bold text-green-400">10 / 10</p>
+                    </div>
+                </div>
+            </div>
+
+            <button id="modal-btn-action" class="w-full py-3 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white rounded-xl font-bold shadow-lg shadow-indigo-500/20 transition-all duration-150">
+                Jugar de nuevo
+            </button>
+        </div>
+    </div>
+
+    <!-- Script de lógica del juego -->
+    <script>
+        // BASE DE DATOS DEL CRUCIGRAMA PRE-DISEÑADO CON EXCELENTE INTERSECCIÓN
+        const WORDS_DATABASE = [
+            { id: 1, word: "SCRUM", dir: "H", r: 1, c: 2, clue: "Marco de trabajo ágil iterativo centrado en la autoorganización y entregas rápidas." },
+            { id: 2, word: "CRONOGRAMA", dir: "V", r: 1, c: 3, clue: "Representación gráfica de la distribución de tareas a lo largo del tiempo del proyecto." },
+            { id: 3, word: "KANBAN", dir: "H", r: 4, c: 1, clue: "Método visual de gestión de tareas que limita el trabajo en progreso (WIP)." },
+            { id: 4, word: "GANTT", dir: "V", r: 2, c: 6, clue: "Diagrama clásico de barras utilizado en la planificación tradicional de proyectos." },
+            { id: 5, word: "GRUPO", dir: "H", r: 2, c: 6, clue: "Conjunto de profesionales (equipo de desarrollo) asignados para ejecutar el proyecto." },
+            { id: 6, word: "TIEMPO", dir: "H", r: 6, c: 6, clue: "Una de las restricciones de la triple restricción; define los plazos del proyecto." },
+            { id: 7, word: "SOPORTE", dir: "V", r: 4, c: 10, clue: "Fase de mantenimiento y asistencia técnica tras el despliegue del sistema." },
+            { id: 8, word: "OBJETIVO", dir: "V", r: 6, c: 11, clue: "Meta clara y medible que justifica la existencia del proyecto informático." },
+            { id: 9, word: "COSTE", dir: "H", r: 9, c: 7, clue: "Presupuesto y recursos económicos asignados para la ejecución del proyecto." },
+            { id: 10, word: "CALIDAD", dir: "V", r: 5, c: 4, clue: "Aseguramiento de que el software cumple con los requisitos del cliente y estándares." }
+        ];
+
+        // Dimensiones totales de la cuadrícula
+        const GRID_ROWS = 14; 
+        const GRID_COLS = 12; 
+
+        // Variables de Estado del Juego
+        let foundWords = [];      // Array de IDs de palabras encontradas
+        let activeWordId = null;  // ID de la palabra enfocada actualmente
+        let timeRemaining = 10 * 60; // 10 minutos
+        let timerInterval = null;
+        let isSoundEnabled = true;
+        let audioCtx = null;
+
+        // Elementos del DOM
+        const gridContainer = document.getElementById("crossword-grid");
+        const cluesListContainer = document.getElementById("clues-list");
+        const scoreBadge = document.getElementById("score-badge");
+        const foundCounter = document.getElementById("found-counter");
+        const timerDisplay = document.getElementById("timer-display");
+        const timerBox = document.getElementById("timer-box");
+        const soundIcon = document.getElementById("sound-icon");
+        const btnSound = document.getElementById("btn-sound");
+        const btnRestart = document.getElementById("btn-restart");
+        const mobileClueBar = document.getElementById("mobile-clue-bar");
+        const mobileClueText = document.getElementById("mobile-clue-text");
+
+        // Elementos de Modales
+        const confirmModal = document.getElementById("confirm-modal");
+        const confirmBtnCancel = document.getElementById("confirm-btn-cancel");
+        const confirmBtnYes = document.getElementById("confirm-btn-yes");
+        
+        const gameModal = document.getElementById("game-modal");
+        const modalIconContainer = document.getElementById("modal-icon-container");
+        const modalTitle = document.getElementById("modal-title");
+        const modalDescription = document.getElementById("modal-description");
+        const modalStatTime = document.getElementById("modal-stat-time");
+        const modalStatWords = document.getElementById("modal-stat-words");
+        const modalBtnAction = document.getElementById("modal-btn-action");
+
+        // Mapas de ayuda para la cuadrícula
+        let cellToWordsMap = {}; // Mapa para saber qué palabras pertenecen a una celda { "r-c": [wordId1, wordId2] }
+        let cellToLetterMap = {}; // Letra correcta por celda { "r-c": "A" }
+
+        // Construye las estructuras indexadas auxiliares
+        function buildGridMap() {
+            cellToWordsMap = {};
+            cellToLetterMap = {};
+
+            WORDS_DATABASE.forEach(item => {
+                const len = item.word.length;
+                for (let i = 0; i < len; i++) {
+                    const row = item.dir === "H" ? item.r : item.r + i;
+                    const col = item.dir === "H" ? item.c + i : item.c;
+                    const key = `${row}-${col}`;
+
+                    if (!cellToWordsMap[key]) {
+                        cellToWordsMap[key] = [];
+                    }
+                    cellToWordsMap[key].push(item.id);
+                    cellToLetterMap[key] = item.word[i];
+                }
+            });
+        }
+
+        // --- SISTEMA DE AUDIO SINTÉTICO OPTIMIZADO (Web Audio API) ---
+        function playSound(type) {
+            if (!isSoundEnabled) return;
+            try {
+                if (!audioCtx) {
+                    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+                }
+                if (audioCtx.state === 'suspended') {
+                    audioCtx.resume();
+                }
+
+                const osc = audioCtx.createOscillator();
+                const gain = audioCtx.createGain();
+                osc.connect(gain);
+                gain.connect(audioCtx.destination);
+
+                const now = audioCtx.currentTime;
+
+                if (type === 'select') {
+                    osc.type = 'sine';
+                    osc.frequency.setValueAtTime(520, now);
+                    osc.frequency.exponentialRampToValueAtTime(800, now + 0.08);
+                    gain.gain.setValueAtTime(0.04, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.08);
+                    osc.start(now);
+                    osc.stop(now + 0.08);
+                } else if (type === 'correct') {
+                    osc.type = 'triangle';
+                    osc.frequency.setValueAtTime(440, now);
+                    osc.frequency.setValueAtTime(554.37, now + 0.08); // C#5
+                    osc.frequency.setValueAtTime(659.25, now + 0.16); // E5
+                    osc.frequency.setValueAtTime(880, now + 0.24); // A5
+                    gain.gain.setValueAtTime(0.12, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.45);
+                    osc.start(now);
+                    osc.stop(now + 0.45);
+                } else if (type === 'error') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(140, now);
+                    osc.frequency.linearRampToValueAtTime(90, now + 0.15);
+                    gain.gain.setValueAtTime(0.08, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.15);
+                    osc.start(now);
+                    osc.stop(now + 0.15);
+                } else if (type === 'victory') {
+                    const notes = [523.25, 659.25, 783.99, 1046.50]; // C5, E5, G5, C6
+                    notes.forEach((freq, idx) => {
+                        const o = audioCtx.createOscillator();
+                        const g = audioCtx.createGain();
+                        o.connect(g);
+                        g.connect(audioCtx.destination);
+                        o.type = 'sine';
+                        o.frequency.setValueAtTime(freq, now + (idx * 0.12));
+                        g.gain.setValueAtTime(0.1, now + (idx * 0.12));
+                        g.gain.linearRampToValueAtTime(0.001, now + (idx * 0.12) + 0.35);
+                        o.start(now + (idx * 0.12));
+                        o.stop(now + (idx * 0.12) + 0.35);
+                    });
+                } else if (type === 'defeat') {
+                    osc.type = 'sawtooth';
+                    osc.frequency.setValueAtTime(260, now);
+                    osc.frequency.exponentialRampToValueAtTime(70, now + 0.7);
+                    gain.gain.setValueAtTime(0.15, now);
+                    gain.gain.linearRampToValueAtTime(0.001, now + 0.7);
+                    osc.start(now);
+                    osc.stop(now + 0.7);
+                }
+            } catch (e) {
+                console.warn("Falla de audio:", e);
+            }
+        }
+
+        // --- RENDERIZADO GENERAL DE LA INTERFAZ ---
+        function renderCrossword() {
+            gridContainer.innerHTML = '';
+
+            for (let r = 0; r < GRID_ROWS; r++) {
+                for (let c = 0; c < GRID_COLS; c++) {
+                    const key = `${r}-${c}`;
+                    const wordsForCell = cellToWordsMap[key];
+
+                    if (wordsForCell) {
+                        // Celda de Letra Activa
+                        const cellWrapper = document.createElement("div");
+                        cellWrapper.className = "relative w-full aspect-square";
+
+                        const input = document.createElement("input");
+                        input.type = "text";
+                        input.id = `input-${r}-${c}`;
+                        input.dataset.r = r;
+                        input.dataset.c = c;
+                        input.maxLength = 1;
+                        input.autocapitalize = "characters";
+                        input.autocomplete = "off";
+
+                        // Clase de estilo por defecto para la celda interactiva
+                        input.className = "w-full h-full text-center text-sm md:text-base font-black border uppercase rounded-lg transition-all duration-150 outline-none select-none ";
+                        input.className += "bg-slate-900 border-slate-700 text-slate-100 focus:border-indigo-500";
+
+                        // Agregar eventos de escucha
+                        input.addEventListener("focus", handleCellFocus);
+                        input.addEventListener("input", handleCellInput);
+                        input.addEventListener("keydown", handleCellKeydown);
+
+                        cellWrapper.appendChild(input);
+
+                        // Mostrar número indicador si es la celda de inicio de alguna palabra
+                        const startingWord = WORDS_DATABASE.find(w => w.r === r && w.c === c);
+                        if (startingWord) {
+                            const indicator = document.createElement("span");
+                            indicator.className = "absolute top-0.5 left-1 text-[8px] font-bold text-slate-500 pointer-events-none z-10";
+                            indicator.innerText = startingWord.id;
+                            cellWrapper.appendChild(indicator);
+                        }
+
+                        gridContainer.appendChild(cellWrapper);
+                    } else {
+                        // Bloque Vacío (Negro)
+                        const block = document.createElement("div");
+                        block.className = "w-full aspect-square bg-slate-950 rounded-lg border border-transparent";
+                        gridContainer.appendChild(block);
+                    }
+                }
+            }
+
+            renderClues();
+            updateGridStyles();
+        }
+
+        // Inyecta las pistas en el contenedor del panel lateral
+        function renderClues() {
+            cluesListContainer.innerHTML = '';
+
+            WORDS_DATABASE.forEach(item => {
+                const isFound = foundWords.includes(item.id);
+                const isActive = activeWordId === item.id;
+
+                const card = document.createElement("div");
+                card.id = `clue-card-${item.id}`;
+                card.dataset.wordId = item.id;
+                
+                // Aplicar clases de color según estado (Gamificación: Rojo = Pendiente, Verde = Completado)
+                if (isFound) {
+                    card.className = "p-3 rounded-xl border bg-emerald-950/20 border-emerald-500/40 text-emerald-400 transition-all duration-300 cursor-pointer";
+                } else if (isActive) {
+                    card.className = "p-3 rounded-xl border bg-indigo-950/40 border-indigo-500 text-indigo-300 transition-all duration-300 cursor-pointer shadow-lg shadow-indigo-500/10";
+                } else {
+                    card.className = "p-3 rounded-xl border bg-rose-950/10 border-rose-500/20 text-rose-400/90 hover:bg-rose-950/20 transition-all duration-200 cursor-pointer";
+                }
+
+                card.innerHTML = `
+                    <div class="flex items-center justify-between">
+                        <span class="text-xs font-black uppercase tracking-widest flex items-center gap-1">
+                            <span class="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded text-slate-400">${item.id}</span>
+                            ${item.dir === 'H' ? 'Horizontal' : 'Vertical'}
+                        </span>
+                        <span class="text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${isFound ? 'bg-emerald-500/20 text-emerald-300' : 'bg-rose-500/10 text-rose-400'}">
+                            ${isFound ? '✓ Resuelto' : '⏳ Pendiente'}
+                        </span>
+                    </div>
+                    <p class="text-[11px] mt-1.5 text-slate-300 leading-normal font-medium">${item.clue}</p>
+                `;
+
+                // Al dar clic en la pista, se enfoca la primera celda vacía de dicha palabra
+                card.addEventListener("click", () => {
+                    focusFirstCellOfWord(item.id);
+                });
+
+                cluesListContainer.appendChild(card);
+            });
+
+            // Actualizar Marcadores generales
+            const total = WORDS_DATABASE.length;
+            const current = foundWords.length;
+            scoreBadge.innerText = `${current} / ${total}`;
+            foundCounter.innerText = `${current} / ${total}`;
+        }
+
+        // --- CONTROLADOR DE ENFOQUE Y SELECCIÓN DE CELDAS ---
+        function handleCellFocus(e) {
+            const r = parseInt(e.target.dataset.r);
+            const c = parseInt(e.target.dataset.c);
+            const key = `${r}-${c}`;
+            
+            const words = cellToWordsMap[key];
+            if (!words || words.length === 0) return;
+
+            // Selección inteligente de la palabra activa enfocada
+            let selectedWordId = words[0];
+            if (words.length > 1) {
+                // Si la celda es intersección, preferir una que no esté completa o mantener la dirección actual si aplica
+                const unresolved = words.filter(id => !foundWords.includes(id));
+                if (unresolved.length > 0) {
+                    selectedWordId = unresolved[0];
+                }
+            }
+
+            activeWordId = selectedWordId;
+            playSound('select');
+            updateGridStyles();
+            renderClues();
+
+            // Sincronizar visor de móvil
+            const activeWord = WORDS_DATABASE.find(w => w.id === activeWordId);
+            if (activeWord) {
+                mobileClueBar.classList.remove("hidden");
+                mobileClueText.innerText = `(${activeWord.id} ${activeWord.dir === 'H' ? 'Horiz.' : 'Vert.'}): ${activeWord.clue}`;
+                
+                // Hacer scroll sutil al elemento enfocado en el listado lateral
+                const card = document.getElementById(`clue-card-${activeWord.id}`);
+                if (card) {
+                    card.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+                }
+            }
+        }
+
+        // Actualiza de forma óptima los estilos y bordes de las celdas de acuerdo al estado del crucigrama
+        function updateGridStyles() {
+            document.querySelectorAll("#crossword-grid input").forEach(input => {
+                const r = parseInt(input.dataset.r);
+                const c = parseInt(input.dataset.c);
+                const key = `${r}-${c}`;
+                
+                const wordsOfCell = cellToWordsMap[key] || [];
+                
+                // Determinar si pertenece a la palabra activa
+                const isPartofActive = wordsOfCell.includes(activeWordId);
+                // Determinar si pertenece a alguna palabra ya resuelta
+                const isResolved = wordsOfCell.some(id => foundWords.includes(id));
+
+                input.classList.remove(
+                    "bg-slate-900", "border-slate-700", "text-slate-100", "border-indigo-500",
+                    "bg-emerald-950/30", "border-emerald-500/50", "text-emerald-400", "font-black",
+                    "bg-indigo-950/20", "border-indigo-500/40"
+                );
+
+                if (isResolved) {
+                    // Resaltar en Verde definitivo
+                    input.classList.add("bg-emerald-950/30", "border-emerald-500/50", "text-emerald-400", "font-black");
+                    input.readOnly = true; // Bloquear ingreso para mantener consistencia
+                } else if (isPartofActive) {
+                    // Resaltar en Indigo (Selección)
+                    input.classList.add("bg-indigo-950/20", "border-indigo-500/70", "text-white");
+                    input.readOnly = false;
+                } else {
+                    // Estado Base Normal
+                    input.classList.add("bg-slate-900", "border-slate-700", "text-slate-100");
+                    input.readOnly = false;
+                }
+            });
+        }
+
+        // --- ENTRADA Y MOVIMIENTO DE CARACTERES ---
+        function handleCellInput(e) {
+            const r = parseInt(e.target.dataset.r);
+            const c = parseInt(e.target.dataset.c);
+            const val = e.target.value.toUpperCase();
+
+            e.target.value = val; // Asegurar mayúscula de inmediato
+
+            if (val.length === 1) {
+                // Validación inmediata del carácter para ver si se formó la palabra
+                checkCompletedWords();
+
+                // Auto-enfoque automático al siguiente cuadro en la dirección del concepto
+                const activeWord = WORDS_DATABASE.find(w => w.id === activeWordId);
+                if (activeWord) {
+                    let nextR = r;
+                    let nextC = c;
+                    if (activeWord.dir === "H") {
+                        nextC++;
+                    } else {
+                        nextR++;
+                    }
+
+                    const nextInput = document.getElementById(`input-${nextR}-${nextC}`);
+                    if (nextInput) {
+                        nextInput.focus();
+                    }
+                }
+            }
+        }
+
+        // Maneja el retroceso (Backspace) y las flechas direccionales de control del teclado
+        function handleCellKeydown(e) {
+            const r = parseInt(e.target.dataset.r);
+            const c = parseInt(e.target.dataset.c);
+            const activeWord = WORDS_DATABASE.find(w => w.id === activeWordId);
+
+            if (e.key === "Backspace") {
+                if (e.target.value === "" && activeWord) {
+                    let prevR = r;
+                    let prevC = c;
+                    if (activeWord.dir === "H") {
+                        prevC--;
+                    } else {
+                        prevR--;
+                    }
+
+                    const prevInput = document.getElementById(`input-${prevR}-${prevC}`);
+                    if (prevInput) {
+                        prevInput.focus();
+                        prevInput.value = ""; // Borrar contenido anterior
+                        checkCompletedWords();
+                    }
+                }
+            } else if (e.key === "ArrowRight") {
+                const next = document.getElementById(`input-${r}-${c + 1}`);
+                if (next) next.focus();
+            } else if (e.key === "ArrowLeft") {
+                const prev = document.getElementById(`input-${r}-${c - 1}`);
+                if (prev) prev.focus();
+            } else if (e.key === "ArrowDown") {
+                const next = document.getElementById(`input-${r + 1}-${c}`);
+                if (next) next.focus();
+            } else if (e.key === "ArrowUp") {
+                const prev = document.getElementById(`input-${r - 1}-${c}`);
+                if (prev) prev.focus();
+            }
+        }
+
+        // Enfoca el primer elemento editable de un concepto de forma didáctica
+        function focusFirstCellOfWord(wordId) {
+            const word = WORDS_DATABASE.find(w => w.id === wordId);
+            if (!word) return;
+
+            activeWordId = wordId;
+            updateGridStyles();
+            renderClues();
+
+            // Buscar primera celda vacía o la primera en su defecto
+            const len = word.word.length;
+            for (let i = 0; i < len; i++) {
+                const row = word.dir === "H" ? word.r : word.r + i;
+                const col = word.dir === "H" ? word.c + i : word.c;
+                const input = document.getElementById(`input-${row}-${col}`);
+
+                if (input && input.value === "") {
+                    input.focus();
+                    return;
+                }
+            }
+
+            // Si todas están llenas, enfocar la primera
+            const firstInput = document.getElementById(`input-${word.r}-${word.c}`);
+            if (firstInput) {
+                firstInput.focus();
+            }
+        }
+
+        // --- VALIDADOR EN TIEMPO REAL ---
+        function checkCompletedWords() {
+            let newlyFound = false;
+
+            WORDS_DATABASE.forEach(item => {
+                // Saltar si ya se validó
+                if (foundWords.includes(item.id)) return;
+
+                let isCompletedAndCorrect = true;
+                const len = item.word.length;
+
+                for (let i = 0; i < len; i++) {
+                    const row = item.dir === "H" ? item.r : item.r + i;
+                    const col = item.dir === "H" ? item.c + i : item.c;
+                    const input = document.getElementById(`input-${row}-${col}`);
+
+                    if (!input || input.value.toUpperCase() !== item.word[i]) {
+                        isCompletedAndCorrect = false;
+                        break;
+                    }
+                }
+
+                if (isCompletedAndCorrect) {
+                    foundWords.push(item.id);
+                    newlyFound = true;
+                }
+            });
+
+            if (newlyFound) {
+                playSound('correct');
+                renderClues();
+                updateGridStyles();
+
+                // Verificar si ganó el juego entero
+                if (foundWords.length === WORDS_DATABASE.length) {
+                    endGame(true);
+                }
+            }
+        }
+
+        // --- SISTEMA DEL TEMPORIZADOR DE JUEGO ---
+        function startTimer() {
+            clearInterval(timerInterval);
+            timeRemaining = 10 * 60; // 10 Minutos iniciales
+            updateTimerDisplay();
+
+            timerInterval = setInterval(() => {
+                timeRemaining--;
+                updateTimerDisplay();
+
+                // Alerta de pánico (Último minuto)
+                if (timeRemaining <= 60) {
+                    timerBox.classList.remove("bg-red-950/40", "border-red-800/60");
+                    timerBox.classList.add("timer-alert");
+                } else {
+                    timerBox.classList.remove("timer-alert");
+                    timerBox.classList.add("bg-red-950/40", "border-red-800/60");
+                }
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    endGame(false);
+                }
+            }, 1000);
+        }
+
+        function updateTimerDisplay() {
+            const min = Math.floor(timeRemaining / 60);
+            const sec = timeRemaining % 60;
+            timerDisplay.innerText = `${min.toString().padStart(2, '0')}:${sec.toString().padStart(2, '0')}`;
+        }
+
+        // --- FIN DEL JUEGO (Modal Informativo) ---
+        function endGame(won) {
+            clearInterval(timerInterval);
+
+            if (won) {
+                playSound('victory');
+                modalIconContainer.innerText = "🏆";
+                modalIconContainer.className = "mx-auto w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg bg-emerald-600 text-white animate-bounce";
+                modalTitle.innerText = "¡Excelente Trabajo!";
+                modalDescription.innerHTML = `
+                    Has demostrado una destreza espectacular en la <strong>Gestión y Dirección de Proyectos de TI</strong>. 
+                    Completar este crucigrama confirma que dominas las restricciones, marcos de trabajo, diagramas y fases clave del ecosistema de ingeniería.
+                `;
+                
+                const elapsed = (10 * 60) - timeRemaining;
+                const mUsed = Math.floor(elapsed / 60);
+                const sUsed = elapsed % 60;
+                modalStatTime.innerText = `${mUsed.toString().padStart(2, '0')}:${sUsed.toString().padStart(2, '0')}`;
+                modalStatWords.innerText = `${foundWords.length} / ${WORDS_DATABASE.length}`;
+            } else {
+                playSound('defeat');
+                modalIconContainer.innerText = "⏰";
+                modalIconContainer.className = "mx-auto w-20 h-20 rounded-full flex items-center justify-center text-4xl mb-4 shadow-lg bg-red-600 text-white animate-pulse";
+                modalTitle.innerText = "¡Se agotó el tiempo!";
+                modalDescription.innerHTML = `
+                    El cronómetro ha llegado a cero. En la gestión de software, cumplir con la restricción de <strong>Tiempo</strong> es crítico. Pero no te preocupes, ¡puedes iterar y volver a intentarlo de inmediato!
+                `;
+                
+                modalStatTime.innerText = "10:00";
+                modalStatWords.innerText = `${foundWords.length} / ${WORDS_DATABASE.length}`;
+            }
+
+            gameModal.classList.remove("hidden");
+        }
+
+        // --- GESTIÓN DE ACCIONES Y REINICIOS ---
+        function restartGame() {
+            gameModal.classList.add("hidden");
+            confirmModal.classList.add("hidden");
+            foundWords = [];
+            activeWordId = null;
+            mobileClueBar.classList.add("hidden");
+
+            buildGridMap();
+            renderCrossword();
+            startTimer();
+        }
+
+        // Eventos de botones
+        btnRestart.addEventListener("click", () => {
+            confirmModal.classList.remove("hidden");
+        });
+
+        confirmBtnCancel.addEventListener("click", () => {
+            confirmModal.classList.add("hidden");
+        });
+
+        confirmBtnYes.addEventListener("click", () => {
+            restartGame();
+        });
+
+        modalBtnAction.addEventListener("click", restartGame);
+
+        // Control de Sonido
+        btnSound.addEventListener("click", () => {
+            isSoundEnabled = !isSoundEnabled;
+            if (isSoundEnabled) {
+                soundIcon.innerText = "🔊";
+                btnSound.classList.remove("bg-red-950/40", "border-red-800");
+                btnSound.classList.add("bg-slate-800");
+            } else {
+                soundIcon.innerText = "🔇";
+                btnSound.classList.add("bg-red-950/40", "border-red-800");
+                btnSound.classList.remove("bg-slate-800");
+            }
+        });
+
+        // Inicializador automático de la aplicación en carga
+        window.onload = () => {
+            restartGame();
+        };
+    </script>
+</body>
+</html>
